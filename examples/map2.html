@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="apple-touch-icon" sizes="76x76" href="../assets/img/apple-icon.png">
+  <link rel="icon" type="image/png" href="../assets/img/favicon.png">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+ 
+  <meta content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, shrink-to-fit=no' name='viewport' />
+  <!--     Fonts and icons     -->
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700,200" rel="stylesheet" />
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.1/css/all.css" integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous">
+  <!-- CSS Files -->
+  <link href="../assets/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="../assets/css/now-ui-dashboard.css?v=1.3.0" rel="stylesheet" />
+  <!-- CSS Just for demo purpose, don't include it in your project -->
+  <link href="../assets/demo/demo.css" rel="stylesheet" />
+  
+  <style>
+      /* Always set the map height explicitly to define the size of the div
+       * element that contains the map. */
+      #mapCanvas {
+        height: 100%;
+        width: 100%;
+
+      }
+      /* Optional: Makes the sample page fill the window. */
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+      #floating-panel {
+        background-color: #fff;
+        border: 1px solid #999;
+        left: 25%;
+        padding: 5px;
+        position: absolute;
+        top: 10px;
+        z-index: 5;
+      }
+    </style>
+
+</head>
+
+<body class="">
+  <div class="wrapper ">
+    <div class="sidebar" data-color="orange">
+     
+      <div class="sidebar-wrapper" id="sidebar-wrapper">
+        <ul class="nav">
+          <li>
+            <a href="./dashboard.html">
+              <i class="now-ui-icons design_app"></i>
+              <p>CriMap</p>
+            </a>
+          </li>
+          <li>
+            <a href="./dashboard.html">
+              <i class="now-ui-icons design_app"></i>
+              <p>Dashboard</p>
+            </a>
+          </li>
+          <li>
+          
+          <li class="active ">
+            <a href="./map.html">
+              <i class="now-ui-icons location_map-big"></i>
+              <p> Live Map Tracking</p>
+            </a>
+          </li>
+          <li>
+            <a href="./notifications.html">
+              <i class="now-ui-icons ui-1_bell-53"></i>
+              <p>Notifications</p>
+            </a>
+          </li>
+          <li >
+            <a href="./tables.html">
+              <i class="now-ui-icons design_bullet-list-67"></i>
+              <p>Table List</p>
+            </a>
+          </li>
+          
+          
+        </ul>
+      </div>
+    </div>
+    <div class="main-panel" id="main-panel">
+      
+
+  <div id="floating-panel">
+      <button onclick="toggleHeatmap()">Toggle Heatmap</button>
+      <button onclick="changeGradient()">Change gradient</button>
+      <button onclick="changeRadius()">Change radius</button>
+      <button onclick="changeOpacity()">Change opacity</button>
+    </div>
+<div id="mapCanvas"></div>
+
+ <script src="https://www.gstatic.com/firebasejs/5.8.4/firebase.js"></script>
+ <script src = "https://code.jquery.com/jquery-3.1.0.js"> </script>
+ <script type="text/javascript" src="crimeCentre2.js"></script>
+
+<script>
+ 
+  var config = {
+    apiKey: "AIzaSyBiHTNmLUhkQ9jlirdim8eIobGQuJweleA",
+    authDomain: "geographic-profi-1550664324418.firebaseapp.com",
+    databaseURL: "https://geographic-profi-1550664324418.firebaseio.com",
+    projectId: "geographic-profi-1550664324418",
+    storageBucket: "geographic-profi-1550664324418.appspot.com",
+    messagingSenderId: "289369803677"
+  };
+  firebase.initializeApp(config);
+
+
+</script>
+<script>
+var ref = firebase.database().ref().child("alerts");
+var ref2 = firebase.database().ref().child("recent");
+var image,position,alert1,Heatmap;
+//var position = [intlat,  intlong];
+function initialize() { 
+    
+    var on = true;
+    var intervalSeconds = 0.5;
+    image = new google.maps.MarkerImage(
+    "car1.png",
+    null, /* size is determined at runtime */
+    null, /* origin is 0,0 */
+    null, /* anchor is bottom center of the scaled image */
+    new google.maps.Size(40, 42));  
+
+    image2 = new google.maps.MarkerImage(
+    "loading.gif",
+    null, /* size is determined at runtime */
+    null, /* origin is 0,0 */
+    null, /* anchor is bottom center of the scaled image */
+    new google.maps.Size(100, 100)); 
+
+    ref.on("child_added",snap =>
+  {
+    ref2.on("child_added",snap =>
+  {
+    lat1 = snap.child("lat").val();
+    long1 = snap.child("lng").val();
+    //alert1 = snap.child("alert_level").val();
+    intlat=parseFloat(lat1);
+    intlong=parseFloat(long1);
+    
+
+    var latlng = new google.maps.LatLng(intlat,intlong);
+    position = [intlat,intlong];
+    ///var position1 = [intlat1,intlong1];
+
+   
+    marker = new google.maps.Marker({
+        position: latlng,
+        map: map,
+        title: "Latitude:"+lat1+" | Longitude:"+long1
+        //icon: image
+    });
+     marker.setIcon(image2);
+
+});
+    lat1 = snap.child("lat").val();
+    long1 = snap.child("lng").val();
+    alert1 = snap.child("alert_level").val();
+    intlat=parseFloat(lat1);
+    intlong=parseFloat(long1);
+    
+
+    var latlng = new google.maps.LatLng(intlat,intlong);
+    position = [intlat,intlong];
+    ///var position1 = [intlat1,intlong1];
+
+    var myOptions = {
+        zoom: 11,
+        center: latlng,
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+                    };
+    map = new google.maps.Map(document.getElementById("mapCanvas"), myOptions);
+
+     Heatmap = new google.maps.visualization.HeatmapLayer({
+          data: getPoints(),
+          map: map
+        });
+
+    marker = new google.maps.Marker({
+        position: latlng,
+        map: map,
+        title: "Latitude:"+lat1+" | Longitude:"+long1
+        //icon: image
+    });
+     marker.setIcon(image);
+
+
+
+  
+
+if(alert1 == "high")
+{
+        marker.setAnimation(google.maps.Animation.BOUNCE);
+}
+  
+
+});
+
+ref.on("child_changed",snap=> {
+
+  //alert("Value Changed in Firebase");
+  //console.log("Value CHanged in Firebase");
+   lat1 = snap.child("lat").val();
+  long1 = snap.child("lng").val();
+    alert1 = snap.child("alert_level").val();
+    //alert(alert);
+    console.log("Alert is " + alert1);
+    console.log(lat1);
+    intlat=parseFloat(lat1);
+    intlong=parseFloat(long1);
+    
+
+
+    var latlng = new google.maps.LatLng(intlat,intlong);
+    position = [intlat,intlong];
+    //var position1 = [intlat1,intlong1];
+
+    var myOptions = {
+        zoom: 11,
+        center: latlng,
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+                    };
+    map = new google.maps.Map(document.getElementById("mapCanvas"), myOptions);
+
+     Heatmap = new google.maps.visualization.HeatmapLayer({
+          data: getPoints(),
+          map: map
+        });
+
+    marker = new google.maps.Marker({
+        position: latlng,
+        map: map,
+        title: "Latitude:"+lat1+" | Longitude:"+intlong
+        //icon: image
+    });
+     marker.setIcon(image);
+
+
+     if (marker.getAnimation() !== null) 
+     {
+          marker.setAnimation(null);
+    } 
+
+
+if(alert1 == "high")
+{
+        marker.setAnimation(google.maps.Animation.BOUNCE);
+}
+    
+
+
+});
+
+
+
+
+
+
+}
+
+
+var numDeltas = 100;
+var delay = 150; //milliseconds
+var i = 0;
+var deltaLat;
+var deltaLng;
+
+function transition(result){
+    i = 0;
+    deltaLat = (result[0] - position[0])/numDeltas;
+    deltaLng = (result[1] - position[1])/numDeltas;
+    moveMarker();
+
+}
+
+function moveMarker(){
+    position[0] += deltaLat;
+    position[1] += deltaLng;
+    var latlng = new google.maps.LatLng(position[0], position[1]);
+    marker.setTitle("Latitude:"+position[0]+" | Longitude:"+position[1]);
+    marker.setPosition(latlng);
+    marker.setIcon(image);
+    if(alert=="high")
+    {
+     var visibility = (marker.getVisible() == true) ? false : true;
+     marker.setVisible(visibility); }
+    if(i!=numDeltas){
+        i++;
+        setTimeout(moveMarker, delay)
+    }
+}
+
+function getPoints() {
+
+var parsed = JSON.parse(rawData);
+var sample = [];
+
+for(i=0;i<parsed.length;i++)
+{
+ // sample.push(parsed[i]);
+  lat = parsed[i].lat;
+  lng = parsed[i].lng;
+  weight = parsed[i].weight;
+ 
+
+  sample.push( {location: new google.maps.LatLng(lat, lng), weight: (weight)*1000});
+
+
+
+
+
+
+}
+
+
+sample.push({location: new google.maps.LatLng(28.56586926588991, 77.2076384600402), weight: 1})
+sample.push({location: new google.maps.LatLng(28.56586926588556, 77.2076384600654), weight: 1})
+sample.push({location: new google.maps.LatLng(28.612064906105918, 77.20895300559994), weight: 1})
+
+
+
+return sample;
+}
+
+  function toggleHeatmap() {
+        Heatmap.setMap(Heatmap.getMap() ? null : map);
+      }
+
+      function changeGradient() {
+        var gradient = [
+          'rgba(0, 255, 255, 0)',
+          'rgba(0, 255, 255, 1)',
+          'rgba(0, 191, 255, 1)',
+          'rgba(0, 127, 255, 1)',
+          'rgba(0, 63, 255, 1)',
+          'rgba(0, 0, 255, 1)',
+          'rgba(0, 0, 223, 1)',
+          'rgba(0, 0, 191, 1)',
+          'rgba(0, 0, 159, 1)',
+          'rgba(0, 0, 127, 1)',
+          'rgba(63, 0, 91, 1)',
+          'rgba(127, 0, 63, 1)',
+          'rgba(191, 0, 31, 1)',
+          'rgba(255, 0, 0, 1)'
+        ]
+        Heatmap.set('gradient', Heatmap.get('gradient') ? null : gradient);
+      }
+
+      function changeRadius() {
+        Heatmap.set('radius', Heatmap.get('radius') ? null : 40);
+      }
+
+      function changeOpacity() {
+        Heatmap.set('opacity', Heatmap.get('opacity') ? null : 0.2);
+      }
+
+        
+</script>
+
+<script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAya10rhQgCJjc28o7sMX5Z4t9vZQUdkNM&libraries=visualization&callback=initialize">
+    </script>
+  <!--   Core JS Files   -->
+  <script src="../assets/js/core/jquery.min.js"></script>
+  <script src="../assets/js/core/popper.min.js"></script>
+  <script src="../assets/js/core/bootstrap.min.js"></script>
+  <script src="../assets/js/plugins/perfect-scrollbar.jquery.min.js"></script>
+  <!--  Google Maps Plugin    -->
+ 
+  <script src="../assets/js/plugins/chartjs.min.js"></script>
+  <!--  Notifications Plugin    -->
+  <script src="../assets/js/plugins/bootstrap-notify.js"></script>
+  <!-- Control Center for Now Ui Dashboard: parallax effects, scripts for the example pages etc -->
+  <script src="../assets/js/now-ui-dashboard.min.js?v=1.3.0" type="text/javascript"></script>
+  <!-- Now Ui Dashboard DEMO methods, don't include it in your project! -->
+  <script src="../assets/demo/demo.js"></script>
+ 
+</body>
+
+</html>
